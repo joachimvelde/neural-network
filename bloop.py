@@ -1,5 +1,6 @@
 import math
 import random
+import copy
 
 def mat_generate(rows, cols, lower, upper):
     m = []
@@ -70,12 +71,15 @@ def sigmoid(x):
 
     return x
 
+def forward(train_in, w, b):
+    res = mat_dot(train_in, w)
+    res = mat_sum(res, b)
+    return sigmoid(res)
+
 def cost(train_in, train_out, w, b):
     sum = 0
 
-    res = mat_dot(train_in, w)
-    res = mat_sum(res, b)
-    res = sigmoid(res)
+    res = forward(train_in, w, b)
 
     for i in range(len(res)):
         for j in range(len(res[i])):
@@ -84,14 +88,14 @@ def cost(train_in, train_out, w, b):
     return sum / (len(res) * len(res[0]))
 
 def derivative_w(train_in, train_out, i, j, w, b, h):
-    w_inc = w
+    w_inc = copy.deepcopy(w)
     w_inc[i][j] += h
     dw = (cost(train_in, train_out, w_inc, b) - cost(train_in, train_out, w, b)) / h
 
     return dw
 
 def derivative_b(train_in, train_out, i, j, w, b, h):
-    b_inc = b
+    b_inc = copy.deepcopy(b)
     b_inc[i][j] += h
     db = (cost(train_in, train_out, w, b_inc) - cost(train_in, train_out, w, b)) / h
 
@@ -123,6 +127,7 @@ def train(count, train_in, train_out, w, b, h, rate):
                 b[i][j] -= db[i][j] * rate
 
         # Printing
+        """
         res = mat_dot(train_in, w)
         res = mat_sum(res, b)
         res = sigmoid(res)
@@ -132,6 +137,7 @@ def train(count, train_in, train_out, w, b, h, rate):
         mat_print(w)
         print("\nB")
         mat_print(b)
+        """
 
     return w, b
 
@@ -142,12 +148,12 @@ def main():
                 [1, 1]]
 
     train_out = [[0],
-                 [0],
-                 [0],
-                 [1]]
+                 [1],
+                 [1],
+                 [0]]
 
     h = 1e-3
-    rate = 1e-3
+    rate = 1e-0
 
     # 4x2 2x1 => 4x1
 
@@ -155,43 +161,20 @@ def main():
     b = mat_generate(len(train_in), len(w[0]), 0, 1)
     # y = x * w + b
 
-    res = mat_dot(train_in, w)
-    res = mat_sum(res, b)
-    res = sigmoid(res)
+    res = forward(train_in, w, b)
     mat_print(res)
     print()
 
-    w, b = train(10000, train_in, train_out, w, b, h, rate)
+    w, b = train(1000, train_in, train_out, w, b, h, rate)
 
     print()
-    res = mat_dot(train_in, w)
-    res = mat_sum(res, b)
-    res = sigmoid(res)
+    res = forward(train_in, w, b)
     mat_print(res)
 
-    # Implement biases
-    # apply sigmoid
+    # Create two layers: (First layer -> OR NAND gates, Second layer -> AND) -> XOR
+    # Combine first layer into matrix for second layer
+    # Need three weight matrices and bias matrices
+
 
 if __name__ == "__main__":
     main()
-
-"""
-def cost(w1, w2, b):
-    sum = 0
-    for i in range(len(train_in)):
-        res = train_in[i][0] * w1 + train_in[i][1] * w2 + b
-        diff = (res - train_out[i][0])**2
-        sum += diff
-    return sum / len(train_in)
-
-def train(count, w1, w2, b):
-    for i in range(count):
-        dw1 = (cost(w1 + h, w2, b) - cost(w1, w2, b)) / h
-        dw2 = (cost(w1, w2 + h, b) - cost(w1, w2, b)) / h
-        db  = (cost(w1, w2, b + h) - cost(w1, w2, b)) / h
-        w1 -= dw1 * rate
-        w2 -= dw2 * rate
-        b  -= db  * rate
-        # print_res(w1, w2, b)
-    return w1, w2, b
-"""
