@@ -85,7 +85,7 @@ def cost(train_in, train_out, w, b):
         for j in range(len(res[i])):
             sum += (res[i][j] - train_out[i][j]) ** 2
 
-    return sum / (len(res) # * len(res[0]))
+    return sum / len(res)
 
 def derivative_w(train_in, train_out, i, j, w, b, h):
     w_inc = copy.deepcopy(w)
