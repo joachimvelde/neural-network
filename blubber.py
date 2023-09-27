@@ -1,14 +1,11 @@
 from matrix import *
+import math
 
-train_in = [[0, 0],
-            [0, 1],
-            [1, 0],
-            [1, 1]]
+# Now our shit is sideways yo
+train_in = [[0, 0, 1, 1],
+            [0, 1, 0, 1]]
 
-train_out = [[0],
-             [1],
-             [1],
-             [1]]
+train_out = [[0, 1, 1, 1]]
 
 
 
@@ -40,11 +37,21 @@ class Network:
         self._gradient = Network(self._arch)
 
 
+    def sigmoid(self, x):
+        for rows in range(len(x)):
+            for cols in range(len(x[rows])):
+                x[rows][cols]  = 1 / (1 + math.exp(-x[rows][cols]))
+
+
     def forward(self):
         for layer in range(len(self._arch)):
             self._as[layer + 1] = mat_dot(self._ws[layer], self._as[layer])
             mat_sum(self._as[layer + 1], self._bs[layer])
+            self.sigmoid(self._as[layer + 1])
 
+
+    def out(self):
+        return self._as[len(self._arch)]
 
 
     def print(self):
@@ -61,12 +68,13 @@ class Network:
 
 
 def main():
-    nn = Network([5, 1])
+    nn = Network([5, 1, 1])
     nn.init()
-    nn.print()
+    # nn.print()
     print("\nForwarding")
     nn.forward()
-    nn.print()
+    # nn.print()
+    mat_print(nn.out())
 
 
 if __name__ == "__main__":
