@@ -93,7 +93,33 @@ class Network:
                     # Biases (will only have one column, but this is more flexible?)
                     for col in range(len(self._bs[layer][row])):
                         self._bs[layer][row][col] -= self._gradient._bs[layer][row][col] * self._rate
-        # -------------------------------------------------------
+    # -------------------------------------------------------
+
+    # ---------- Implementing backpropagation ----------
+    def backprop(self):
+        self.forward()
+
+        # Reset the gradient activations
+        for layer in range(len(self._arch)):
+            for row in range(len(self._as[layer])):
+                for col in range(len(self._as[layer][row])):
+                    self._gradient._as[layer][row][col] = 0
+        
+
+        # The difference in the output and expected output, as well as the
+        # intermediate partial derivatives is stored in the gradient activation
+        # matrices since they are otherwise unused
+        for row in range(len(self._train_out)):
+            for col in range(len(self._train_out)):
+                d = self.out()[row][col] - self._train_out[row][col]
+                self._gradient._as[len(self._arch)][row][col] = d
+        
+        for layer in reversed(range(len(self._arch))):
+            for row in range(len(self._ws[layer])):
+                # Biases
+                for col in range(len(self._ws[layer][row])):
+                    None
+
 
     def print_out(self):
         print(self._as[len(self._arch)].transpose())
@@ -120,7 +146,10 @@ def main():
     nn = Network([2, 1], inp, out)
     nn.init()
 
-    nn.train(10000)
+    # Training throught finite differences
+    # nn.train(10000)
+
+    nn.backprop()
 
     print("\nInput")
     nn.print_in()
