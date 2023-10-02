@@ -37,9 +37,6 @@ class Network:
 
     def init(self):
         self._gradient = Network(self._arch, self._train_in, self._train_out)
-        print("The gradient was initialised")
-        self._gradient.print()
-        print("End gradient")
 
     def sigmoid(self, x: list):
         for row in range(len(x)):
@@ -66,15 +63,10 @@ class Network:
     def diff(self):
         # Differentiate all weights and biases
         for layer in range(len(self._arch)):
-            # Weights
-            print("Iterating over this weight matrix:")
-            print(self._ws[layer])
-            print(self._gradient._ws[layer])
-            print("---")
             for row in range(len(self._ws[layer])):
+                # Weights
                 for col in range(len(self._ws[layer][row])):
                     # Calculate finite difference
-                    print(f"Layer: {layer}, row: {row}, col: {col}")
                     self._ws[layer][row][col] += self._h
                     inc_cost = self.cost()
                     self._ws[layer][row][col] -= self._h
@@ -86,20 +78,20 @@ class Network:
                     inc_cost = self.cost()
                     self._bs[layer][row][col] -= self._h
                     cur_cost = self.cost()
-                    self._gradient._ws[layer][row][col] = (inc_cost - cur_cost) / self._h
+                    self._gradient._bs[layer][row][col] = (inc_cost - cur_cost) / self._h
 
     def train(self):
         self.forward()
         self.diff() # Calculate the gradient
         # Update parameters
-        #  for layer in range(len(self._arch)):
-        #      # Weights
-        #      for row in range(len(self._ws[layer])):
-        #          for col in range(len(self._ws[layer][row])):
-        #              self._gradient._ws[layer][row][col] -= self._wd[layer][row][col] * self._rate
-        #          # Biases (will only have one column, but this is more flexible?)
-        #          for col in range(len(self._bs[layer][row])):
-        #              self._gradient._ws[layer][row][col] -= self._bd[layer][row][col] * self._rate
+        for layer in range(len(self._arch)):
+            # Weights
+            for row in range(len(self._ws[layer])):
+                for col in range(len(self._ws[layer][row])):
+                    self._ws[layer][row][col] -= self._gradient._ws[layer][row][col] * self._rate
+                # Biases (will only have one column, but this is more flexible?)
+                for col in range(len(self._bs[layer][row])):
+                    self._bs[layer][row][col] -= self._gradient._bs[layer][row][col] * self._rate
         # -------------------------------------------------------
 
     def print_out(self):
@@ -123,15 +115,12 @@ def main():
     nn = Network([2, 1], inp, out)
     nn.init()
 
-    print("network")
+    for i in range(10):
+        print(f"cost = {nn.cost()}")
+        nn.train()
+
+    print("\nOutput")
     nn.print_out()
-    print("end network")
-
-    nn.train()
-
-    # print()
-    # nn.print_out()
-    # print(f"cost = {nn.cost()}")
 
 
 if __name__ == "__main__":
