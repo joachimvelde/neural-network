@@ -2,11 +2,10 @@ import numpy as np
 import copy
 import math
 
-# Use .T instead
 train = np.array([[0, 0, 0],
                   [0, 1, 1],
                   [1, 0, 1],
-                  [1, 1, 0]]).transpose()
+                  [1, 1, 0]]).T
 
 class Network:
     def __init__(self, arch: list, train_in, train_out):
@@ -18,7 +17,7 @@ class Network:
         self._ws = []
         self._bs = []
         self._as = []
-        self._gradient = None
+        self._gradient = None # Change this - its very stupid
 
         self._h = 1e-3
         self._rate = 1e-1
@@ -31,8 +30,8 @@ class Network:
 
         for layer in range(len(self._arch)):
             n_count = self._arch[layer]
-            self._ws.append(np.random.randn(n_count, rows) * 1e-2)
-            self._bs.append(np.random.randn(n_count, cols) * 1e-2)
+            self._ws.append(np.random.randn(n_count, rows) * 0.01)
+            self._bs.append(np.random.randn(n_count, cols) * 0.01)
             self._as.append(np.zeros((n_count, cols)))
             rows = len(self._as[layer + 1])
 
@@ -46,7 +45,7 @@ class Network:
         for layer in range(len(self._arch)):
             self._as[layer + 1] = self._ws[layer] @ self._as[layer] # Multiply weights
             self._as[layer + 1] += self._bs[layer] # Add the bias
-            self.sigmoid(self._as[layer + 1]) # Apply activation
+            self._as[layer + 1] = self.sigmoid(self._as[layer + 1]) # Apply activation
 
     # ---------- Gradient throught finite difference ----------
     def out(self):
@@ -80,7 +79,7 @@ class Network:
                     cur_cost = self.cost()
                     self._gradient._bs[layer][row][col] = (inc_cost - cur_cost) / self._h
 
-    def train(self, iterations):
+    def train_fin_diff(self, iterations):
         for i in range(iterations):
             self.diff() # Calculate the gradient
             # Update parameters
@@ -92,9 +91,8 @@ class Network:
                     # Biases (will only have one column, but this is more flexible?)
                     for col in range(len(self._bs[layer][row])):
                         self._bs[layer][row][col] -= self._gradient._bs[layer][row][col] * self._rate
-    # -------------------------------------------------------
 
-    # ---------- Implementing backpropagation ----------
+    # -------------------- Backpropagation --------------------
     def backprop(self):
         self.forward()
 
@@ -102,13 +100,13 @@ class Network:
 
         # Propagate backwards
         for layer in reversed(range(len(self._arch))):
-            # Gradient for the current layer
+            # Gradient for the current layer (using sigmoid)
             delta_layer = delta_output * self._as[layer + 1] * (1 - self._as[layer + 1])
             delta_layer *= 2 / len(self._train_in[0])
 
             # Gradients for weights and biases
             self._gradient._ws[layer] = delta_layer @ self._as[layer].T
-            self._gradient._bs[layer] = np.sum(delta_layer, axis=1, keepdims=True)
+            self._gradient._bs[layer] = delta_layer
 
             # Propagate the gradient to the previous layer
             delta_output = np.dot(self._ws[layer].T, delta_layer)
@@ -118,6 +116,9 @@ class Network:
             self._ws[layer] -= self._gradient._ws[layer] * self._rate
             self._bs[layer] -= self._gradient._bs[layer] * self._rate
 
+    def train(self, iterations):
+        for i in range(iterations):
+            self.backprop()
 
     def print_out(self):
         print(self._as[len(self._arch)].transpose())
@@ -144,15 +145,7 @@ def main():
     nn = Network([2, 1], inp, out)
     nn.init()
 
-    # Training throught finite differences
-    # nn.train(10000)
-
-    nn._gradient.print()
-    for i in range(10):
-        nn.backprop()
-    print()
-    nn._gradient.print()
-
+    nn.train(1000)
 
     print("\nInput")
     nn.print_in()
