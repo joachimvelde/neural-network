@@ -1,82 +1,138 @@
-from matrix import *
+import numpy as np
+import copy
 import math
 
-# Now our shit is sideways yo
-train_in = [[0, 0, 1, 1],
-            [0, 1, 0, 1]]
-
-train_out = [[0, 1, 1, 1]]
-
-
+train = np.array([[0, 0],
+                  [1, 2],
+                  [2, 4],
+                  [3, 6]]).transpose()
 
 class Network:
-    def __init__(self, arch: list):
+    def __init__(self, arch: list, train_in, train_out):
         self._arch = arch
+
+        self._train_in = train_in
+        self._train_out = train_out
+
         self._ws = []
         self._bs = []
         self._as = []
-        self._gradient = None # Must be created after initialization
+        self._gradient = None
 
-        rows = len(train_in)
-        cols = len(train_in[0])
+        self._h = 1e-3
+        self._rate = 1e-1
 
-        self._as.append(mat_gen(rows, cols, 0, 0))
-        # Insert the training data
-        mat_sum(self._as[0], train_in)
+        rows = train_in.shape[0]
+        cols = train_in.shape[1]
+
+        # Feed the input into the network (probably dont need to deepcopy)
+        self._as.append(copy.deepcopy(train_in))
 
         for layer in range(len(self._arch)):
             n_count = self._arch[layer]
-            self._ws.append(mat_gen(n_count, rows, 0, 1))
-            self._bs.append(mat_gen(n_count, cols, 0, 1))
-            self._as.append(mat_gen(n_count, cols, 0, 0))
+            self._ws.append(np.random.rand(n_count, rows))
+            self._bs.append(np.random.rand(n_count, cols))
+            self._as.append(np.zeros((n_count, cols)))
             rows = len(self._as[layer + 1])
 
-
-    # Must be called after creating a network
     def init(self):
-        self._gradient = Network(self._arch)
+        self._gradient = Network(self._arch, self._train_in, self._train_out)
+        print("The gradient was initialised")
+        self._gradient.print()
+        print("End gradient")
 
-
-    def sigmoid(self, x):
-        for rows in range(len(x)):
-            for cols in range(len(x[rows])):
-                x[rows][cols]  = 1 / (1 + math.exp(-x[rows][cols]))
-
+    def sigmoid(self, x: list):
+        for row in range(len(x)):
+            for col in range(len(x[row])):
+                x[row][col] = 1 / (1 + math.exp(x[row][col]))
 
     def forward(self):
         for layer in range(len(self._arch)):
-            self._as[layer + 1] = mat_dot(self._ws[layer], self._as[layer])
-            mat_sum(self._as[layer + 1], self._bs[layer])
-            self.sigmoid(self._as[layer + 1])
+            self._as[layer + 1] = self._ws[layer] @ self._as[layer] # Multiply weights
+            self._as[layer + 1] += self._bs[layer] # Add the bias
+            self.sigmoid(self._as[layer + 1]) # Apply activation
 
-
+    # ---------- Gradient throught finite difference ----------
     def out(self):
         return self._as[len(self._arch)]
 
+    def cost(self):
+        cum_sum = 0
+        for i in range(len(self.out()[0])):
+            y = self.out()[0][i]
+            cum_sum += (y - self._train_out[0][i])**2
+        return cum_sum / len(self._train_out[0])
+
+    def diff(self):
+        # Differentiate all weights and biases
+        for layer in range(len(self._arch)):
+            # Weights
+            print("Iterating over this weight matrix:")
+            print(self._ws[layer])
+            print(self._gradient._ws[layer])
+            print("---")
+            for row in range(len(self._ws[layer])):
+                for col in range(len(self._ws[layer][row])):
+                    # Calculate finite difference
+                    print(f"Layer: {layer}, row: {row}, col: {col}")
+                    self._ws[layer][row][col] += self._h
+                    inc_cost = self.cost()
+                    self._ws[layer][row][col] -= self._h
+                    cur_cost = self.cost()
+                    self._gradient._ws[layer][row][col] = (inc_cost - cur_cost) / self._h
+                # Biases
+                for col in range(len(self._bs[layer][row])):
+                    self._bs[layer][row][col] += self._h
+                    inc_cost = self.cost()
+                    self._bs[layer][row][col] -= self._h
+                    cur_cost = self.cost()
+                    self._gradient._ws[layer][row][col] = (inc_cost - cur_cost) / self._h
+
+    def train(self):
+        self.forward()
+        self.diff() # Calculate the gradient
+        # Update parameters
+        #  for layer in range(len(self._arch)):
+        #      # Weights
+        #      for row in range(len(self._ws[layer])):
+        #          for col in range(len(self._ws[layer][row])):
+        #              self._gradient._ws[layer][row][col] -= self._wd[layer][row][col] * self._rate
+        #          # Biases (will only have one column, but this is more flexible?)
+        #          for col in range(len(self._bs[layer][row])):
+        #              self._gradient._ws[layer][row][col] -= self._bd[layer][row][col] * self._rate
+        # -------------------------------------------------------
+
+    def print_out(self):
+        print(self._as[len(self._arch)].transpose())
 
     def print(self):
         for i in range(len(self._as)):
             print("\nas")
-            mat_print(self._as[i])
-                        
+            print(self._as[i])
+
         for i in range(len(self._ws)):
             print("\nw:")
-            mat_print(self._ws[i])    
+            print(self._ws[i])    
             print("\nb:")
-            mat_print(self._bs[i])
-
-
+            print(self._bs[i])
 
 def main():
-    nn = Network([5, 1, 1])
+    inp = train[0][np.newaxis] # Stay as matrix
+    out = train[1][np.newaxis]
+
+    nn = Network([2, 1], inp, out)
     nn.init()
-    # nn.print()
-    print("\nForwarding")
-    nn.forward()
-    # nn.print()
-    mat_print(nn.out())
+
+    print("network")
+    nn.print_out()
+    print("end network")
+
+    nn.train()
+
+    # print()
+    # nn.print_out()
+    # print(f"cost = {nn.cost()}")
 
 
 if __name__ == "__main__":
     main()
-
