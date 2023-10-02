@@ -2,10 +2,10 @@ import numpy as np
 import copy
 import math
 
-train = np.array([[0, 0],
-                  [1, 2],
-                  [2, 4],
-                  [3, 6]]).transpose()
+train = np.array([[0, 0, 0],
+                  [0, 1, 1],
+                  [1, 0, 1],
+                  [1, 1, 0]]).transpose()
 
 class Network:
     def __init__(self, arch: list, train_in, train_out):
@@ -54,6 +54,7 @@ class Network:
         return self._as[len(self._arch)]
 
     def cost(self):
+        self.forward()
         cum_sum = 0
         for i in range(len(self.out()[0])):
             y = self.out()[0][i]
@@ -80,18 +81,18 @@ class Network:
                     cur_cost = self.cost()
                     self._gradient._bs[layer][row][col] = (inc_cost - cur_cost) / self._h
 
-    def train(self):
-        self.forward()
-        self.diff() # Calculate the gradient
-        # Update parameters
-        for layer in range(len(self._arch)):
-            # Weights
-            for row in range(len(self._ws[layer])):
-                for col in range(len(self._ws[layer][row])):
-                    self._ws[layer][row][col] -= self._gradient._ws[layer][row][col] * self._rate
-                # Biases (will only have one column, but this is more flexible?)
-                for col in range(len(self._bs[layer][row])):
-                    self._bs[layer][row][col] -= self._gradient._bs[layer][row][col] * self._rate
+    def train(self, iterations):
+        for i in range(iterations):
+            self.diff() # Calculate the gradient
+            # Update parameters
+            for layer in range(len(self._arch)):
+                # Weights
+                for row in range(len(self._ws[layer])):
+                    for col in range(len(self._ws[layer][row])):
+                        self._ws[layer][row][col] -= self._gradient._ws[layer][row][col] * self._rate
+                    # Biases (will only have one column, but this is more flexible?)
+                    for col in range(len(self._bs[layer][row])):
+                        self._bs[layer][row][col] -= self._gradient._bs[layer][row][col] * self._rate
         # -------------------------------------------------------
 
     def print_out(self):
@@ -109,15 +110,14 @@ class Network:
             print(self._bs[i])
 
 def main():
-    inp = train[0][np.newaxis] # Stay as matrix
-    out = train[1][np.newaxis]
+    # Our data was transposed, so we pick out input and output by rows instead of columns
+    inp = train[0:1]
+    out = train[2][np.newaxis] # Stay as matrix
 
     nn = Network([2, 1], inp, out)
     nn.init()
 
-    for i in range(10):
-        print(f"cost = {nn.cost()}")
-        nn.train()
+    nn.train(10000)
 
     print("\nOutput")
     nn.print_out()
