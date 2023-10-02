@@ -25,8 +25,8 @@ class Network:
         rows = train_in.shape[0]
         cols = train_in.shape[1]
 
-        # Feed the input into the network (probably dont need to deepcopy)
-        self._as.append(copy.deepcopy(train_in))
+        # Feed the input into the network
+        self._as.append(train_in)
 
         for layer in range(len(self._arch)):
             n_count = self._arch[layer]
@@ -98,6 +98,9 @@ class Network:
     def print_out(self):
         print(self._as[len(self._arch)].transpose())
 
+    def print_in(self):
+        print(self._as[0].transpose())
+
     def print(self):
         for i in range(len(self._as)):
             print("\nas")
@@ -111,13 +114,16 @@ class Network:
 
 def main():
     # Our data was transposed, so we pick out input and output by rows instead of columns
-    inp = train[0:1]
+    inp = train[0:2]
     out = train[2][np.newaxis] # Stay as matrix
 
     nn = Network([2, 1], inp, out)
     nn.init()
 
     nn.train(10000)
+
+    print("\nInput")
+    nn.print_in()
 
     print("\nOutput")
     nn.print_out()
