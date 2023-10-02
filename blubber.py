@@ -31,8 +31,8 @@ class Network:
 
         for layer in range(len(self._arch)):
             n_count = self._arch[layer]
-            self._ws.append(np.random.rand(n_count, rows))
-            self._bs.append(np.random.rand(n_count, cols))
+            self._ws.append(np.random.randn(n_count, rows) * 1e-2)
+            self._bs.append(np.random.randn(n_count, cols) * 1e-2)
             self._as.append(np.zeros((n_count, cols)))
             rows = len(self._as[layer + 1])
 
@@ -40,9 +40,7 @@ class Network:
         self._gradient = Network(self._arch, self._train_in, self._train_out)
 
     def sigmoid(self, x: list):
-        for row in range(len(x)):
-            for col in range(len(x[row])):
-                x[row][col] = 1 / (1 + math.exp(x[row][col]))
+        return 1 / (1 + np.exp(-x))
 
     def forward(self):
         for layer in range(len(self._arch)):
@@ -106,14 +104,11 @@ class Network:
         for layer in reversed(range(len(self._arch))):
             # Gradient for the current layer
             delta_layer = delta_output * self._as[layer + 1] * (1 - self._as[layer + 1])
+            delta_layer *= 2 / len(self._train_in[0])
 
             # Gradients for weights and biases
-            dw_layer = delta_layer @ self._as[layer].T
-            db_layer = delta_layer
-
-            # Update weights and biases for the current layer
-            self._gradient._ws[layer] = dw_layer
-            self._gradient._bs[layer] = db_layer
+            self._gradient._ws[layer] = delta_layer @ self._as[layer].T
+            self._gradient._bs[layer] = np.sum(delta_layer, axis=1, keepdims=True)
 
             # Propagate the gradient to the previous layer
             delta_output = np.dot(self._ws[layer].T, delta_layer)
@@ -152,8 +147,12 @@ def main():
     # Training throught finite differences
     # nn.train(10000)
 
-    for i in range(10000):
+    nn._gradient.print()
+    for i in range(10):
         nn.backprop()
+    print()
+    nn._gradient.print()
+
 
     print("\nInput")
     nn.print_in()
