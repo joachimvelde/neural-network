@@ -2,6 +2,7 @@ import numpy as np
 import copy
 import math
 
+# Use .T instead
 train = np.array([[0, 0, 0],
                   [0, 1, 1],
                   [1, 0, 1],
@@ -99,26 +100,28 @@ class Network:
     def backprop(self):
         self.forward()
 
-        # Reset the gradient activations
-        for layer in range(len(self._arch)):
-            for row in range(len(self._as[layer])):
-                for col in range(len(self._as[layer][row])):
-                    self._gradient._as[layer][row][col] = 0
-        
+        delta_output = 2 * (self.out() - self._train_out)
 
-        # The difference in the output and expected output, as well as the
-        # intermediate partial derivatives is stored in the gradient activation
-        # matrices since they are otherwise unused
-        for row in range(len(self._train_out)):
-            for col in range(len(self._train_out)):
-                d = self.out()[row][col] - self._train_out[row][col]
-                self._gradient._as[len(self._arch)][row][col] = d
-        
+        # Propagate backwards
         for layer in reversed(range(len(self._arch))):
-            for row in range(len(self._ws[layer])):
-                # Biases
-                for col in range(len(self._ws[layer][row])):
-                    None
+            # Gradient for the current layer
+            delta_layer = delta_output * self._as[layer + 1] * (1 - self._as[layer + 1])
+
+            # Gradients for weights and biases
+            dw_layer = delta_layer @ self._as[layer].T
+            db_layer = delta_layer
+
+            # Update weights and biases for the current layer
+            self._gradient._ws[layer] = dw_layer
+            self._gradient._bs[layer] = db_layer
+
+            # Propagate the gradient to the previous layer
+            delta_output = np.dot(self._ws[layer].T, delta_layer)
+
+        # Update parameters
+        for layer in range(len(self._arch)):
+            self._ws[layer] -= self._gradient._ws[layer] * self._rate
+            self._bs[layer] -= self._gradient._bs[layer] * self._rate
 
 
     def print_out(self):
@@ -149,7 +152,8 @@ def main():
     # Training throught finite differences
     # nn.train(10000)
 
-    nn.backprop()
+    for i in range(10000):
+        nn.backprop()
 
     print("\nInput")
     nn.print_in()
