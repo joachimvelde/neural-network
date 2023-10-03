@@ -2,6 +2,7 @@ import sys
 import numpy as np
 import copy
 import math
+import time
 
 train = np.array([[0, 0, 0],
                   [0, 1, 1],
@@ -23,7 +24,7 @@ class Network:
         self._ws = []
         self._bs = []
         self._as = []
-        self._gradient = Gradient()
+        self._gradient = self.Gradient()
 
         self._h = 1e-3
         self._rate = 1e-1
@@ -134,6 +135,7 @@ class Network:
                 sys.stdout.write('\r')
                 sys.stdout.write("[%-10s] %d%%" % ('=' * int(progress/10), progress))
                 sys.stdout.flush()
+        print()
 
     def print_out(self):
         print(self._as[len(self._arch)].transpose())
@@ -153,18 +155,42 @@ class Network:
             print(self._bs[i])
 
 def main():
-    # Our data was transposed, so we pick out input and output by rows instead of columns
-    inp = train[0:2]
-    out = train[2][np.newaxis] # Stay as matrix
+    # Read the mnist training dataset
+    images = []
+    labels = []
 
-    nn = Network([2, 1], inp, out)
-    nn.init()
+    count = 0
+    with open("mnist_train.csv") as f:
+        for line in f:
+            parts = line.rstrip().split(",")
+            label = int(parts[0])
+            pixels = np.array([int(x) for x in parts[1:]])[np.newaxis]
+            
+            labels.append(label)
+            images.append(pixels)
 
-    nn.train(100, load=True)
+            count += 1
+            if count == 1: break
+
+
+    print(images[0].T.shape)
+
+    out = np.array([0, 0, 0, 0, 0, 1, 0, 0, 0, 0])[np.newaxis]
+
+    nn = Network([2, 10], images[0].T, out.T)
+
+    nn.train(10000, load=True)
 
     print("\nOutput")
-    nn.print_out()
-
+    print(nn.out())
 
 if __name__ == "__main__":
+    start_time = time.time()
     main()
+    print(f"Seconds: {time.time() - start_time}")
+
+
+
+# Our data was transposed, so we pick out input and output by rows instead of columns
+# inp = train[0:2]
+# out = train[2][np.newaxis] # Stay as matrix
