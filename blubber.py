@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import copy
 import math
@@ -8,6 +9,11 @@ train = np.array([[0, 0, 0],
                   [1, 1, 0]]).T
 
 class Network:
+    class Gradient:
+        def __init__(self):
+            self._ws = []
+            self._bs = []
+
     def __init__(self, arch: list, train_in, train_out):
         self._arch = arch
 
@@ -17,7 +23,7 @@ class Network:
         self._ws = []
         self._bs = []
         self._as = []
-        self._gradient = None # Change this - its very stupid
+        self._gradient = Gradient()
 
         self._h = 1e-3
         self._rate = 1e-1
@@ -33,10 +39,12 @@ class Network:
             self._ws.append(np.random.randn(n_count, rows) * 0.01)
             self._bs.append(np.random.randn(n_count, cols) * 0.01)
             self._as.append(np.zeros((n_count, cols)))
-            rows = len(self._as[layer + 1])
 
-    def init(self):
-        self._gradient = Network(self._arch, self._train_in, self._train_out)
+            # Create the gradient
+            self._gradient._ws.append(np.zeros((n_count, rows)))
+            self._gradient._bs.append(np.zeros((n_count, cols)))
+
+            rows = len(self._as[layer + 1])
 
     def sigmoid(self, x: list):
         return 1 / (1 + np.exp(-x))
@@ -116,9 +124,16 @@ class Network:
             self._ws[layer] -= self._gradient._ws[layer] * self._rate
             self._bs[layer] -= self._gradient._bs[layer] * self._rate
 
-    def train(self, iterations):
+    def train(self, iterations, load=False):
         for i in range(iterations):
             self.backprop()
+
+            # Add 1 because the range function is non inclusive
+            if (i / iterations * 100 + 1) % 1 == 0 and load:
+                progress = math.ceil(i / iterations * 100 + 1)
+                sys.stdout.write('\r')
+                sys.stdout.write("[%-10s] %d%%" % ('=' * int(progress/10), progress))
+                sys.stdout.flush()
 
     def print_out(self):
         print(self._as[len(self._arch)].transpose())
@@ -145,10 +160,7 @@ def main():
     nn = Network([2, 1], inp, out)
     nn.init()
 
-    nn.train(1000)
-
-    print("\nInput")
-    nn.print_in()
+    nn.train(100, load=True)
 
     print("\nOutput")
     nn.print_out()
