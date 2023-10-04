@@ -4,11 +4,6 @@ import copy
 import math
 import time
 
-train = np.array([[0, 0, 0],
-                  [0, 1, 1],
-                  [1, 0, 1],
-                  [1, 1, 0]]).T
-
 class Network:
     class Gradient:
         def __init__(self):
@@ -125,7 +120,13 @@ class Network:
             self._ws[layer] -= self._gradient._ws[layer] * self._rate
             self._bs[layer] -= self._gradient._bs[layer] * self._rate
 
-    def train(self, iterations, load=False):
+    def train(self, iterations, input, output, load=False):
+        # Set the input and output data
+        self._train_in = input
+        self._as[0] = input
+        self._train_out = output
+        
+        # Actual training
         for i in range(iterations):
             self.backprop()
 
@@ -154,6 +155,11 @@ class Network:
             print("\nb:")
             print(self._bs[i])
 
+def label_to_mat(label):
+    mat = np.zeros((10, 1))
+    mat[label] = 1
+    return mat.T
+
 def main():
     # Read the mnist training dataset
     images = []
@@ -170,24 +176,23 @@ def main():
             images.append(pixels)
 
             count += 1
-            if count == 1: break
+            if count == 10000: break
 
+    # We need the shape of the data to initialize the network
+    out = label_to_mat(labels[0])
+    nn = Network([16, 16, 10], images[0].T, out.T)
 
-    print(images[0].T.shape)
+    for i in range(len(images)):
+        nn.train(20, images[i].T, label_to_mat(labels[i]).T)
+        print(f"\nOutput: {labels[i]}")
+        print(nn.out())
 
-    out = np.array([0, 0, 0, 0, 0, 1, 0, 0, 0, 0])[np.newaxis]
-
-    nn = Network([2, 10], images[0].T, out.T)
-
-    nn.train(10000, load=True)
-
-    print("\nOutput")
-    print(nn.out())
 
 if __name__ == "__main__":
     start_time = time.time()
     main()
-    print(f"Seconds: {time.time() - start_time}")
+    timed = time.time() - start_time
+    print(f"Minutes: {timed // 60}, seconds: {timed % 60}")
 
 
 
