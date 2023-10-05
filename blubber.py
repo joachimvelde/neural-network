@@ -158,7 +158,7 @@ class Network:
 def label_to_mat(label):
     mat = np.zeros((10, 1))
     mat[label] = 1
-    return mat.T
+    return mat
 
 def main():
     # Read the mnist training dataset
@@ -180,10 +180,10 @@ def main():
 
     # We need the shape of the data to initialize the network
     out = label_to_mat(labels[0])
-    nn = Network([16, 16, 10], images[0].T, out.T)
+    nn = Network([16, 16, 10], images[0].T, out)
 
     for i in range(len(images)):
-        nn.train(20, images[i].T, label_to_mat(labels[i]).T)
+        nn.train(20, images[i].T, label_to_mat(labels[i]))
         print(f"\nOutput: {labels[i]}")
         print(nn.out())
 
