@@ -3,6 +3,7 @@ import numpy as np
 import copy
 import math
 import time
+import random
 
 class Network:
     class Gradient:
@@ -22,7 +23,7 @@ class Network:
         self._gradient = self.Gradient()
 
         self._h = 1e-3
-        self._rate = 1e-1
+        self._rate = 1e-3
 
         rows = train_in.shape[0]
         cols = train_in.shape[1]
@@ -120,23 +121,13 @@ class Network:
             self._ws[layer] -= self._gradient._ws[layer] * self._rate
             self._bs[layer] -= self._gradient._bs[layer] * self._rate
 
-    def train(self, iterations, input, output, load=False):
+    def train(self, input, output):
         # Set the input and output data
         self._train_in = input
         self._as[0] = input
         self._train_out = output
         
-        # Actual training
-        for i in range(iterations):
-            self.backprop()
-
-            # Add 1 because the range function is non inclusive
-            if (i / iterations * 100 + 1) % 1 == 0 and load:
-                progress = math.ceil(i / iterations * 100 + 1)
-                sys.stdout.write('\r')
-                sys.stdout.write("[%-10s] %d%%" % ('=' * int(progress/10), progress))
-                sys.stdout.flush()
-        print()
+        self.backprop()
 
     def print_out(self):
         print(self._as[len(self._arch)].transpose())
@@ -160,10 +151,22 @@ def label_to_mat(label):
     mat[label] = 1
     return mat
 
+# Lower training rate
+# Smaller dataset
+# Less training iterations
+# More epochs
+
+# More data -> more epochs and lower training rate???
+
 def main():
     # Read the mnist training dataset
     images = []
     labels = []
+
+    epochs = 1000 # Careful of overfitting
+
+    data_count = 500 # How many images to load
+    train_count = data_count - 15 # How many images to train the network on
 
     count = 0
     with open("mnist_train.csv") as f:
@@ -176,15 +179,31 @@ def main():
             images.append(pixels)
 
             count += 1
-            if count == 10000: break
+            if count == data_count: break
 
     # We need the shape of the data to initialize the network
     out = label_to_mat(labels[0])
-    nn = Network([16, 16, 10], images[0].T, out)
+    nn = Network([128, 10], images[0].T, out)
 
-    for i in range(len(images)):
-        nn.train(20, images[i].T, label_to_mat(labels[i]))
-        print(f"\nOutput: {labels[i]}")
+    for j in range(epochs):
+        for i in range(train_count):
+            nn.train(images[i].T, label_to_mat(labels[i]))
+            nn.forward()
+
+        if (j / epochs * 100 + 1) % 1 == 0:
+            progress = math.ceil(j / epochs * 100 + 1)
+            sys.stdout.write('\r')
+            sys.stdout.write("[%-10s] %d%%" % ('=' * int(progress/10), progress))
+            sys.stdout.flush()
+    print()
+
+    print("\n ----------TEST DATA----------")
+
+    # Test the network on images it is not trained on
+    for i in range(train_count, data_count):
+        nn._as[0] = images[i].T
+        nn.forward()
+        print(f"\nDesired: {labels[i]}, index: {i}")
         print(nn.out())
 
 
