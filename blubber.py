@@ -146,6 +146,27 @@ class Network:
             print("\nb:")
             print(self._bs[i])
 
+    def save(self, filename):
+        weight_dict = {f"array{i}": array for i, array in enumerate(self._ws)}
+        bias_dict = {f"array{i}": array for i, array in enumerate(self._bs)}
+
+        np.savez(filename + "_w", **weight_dict)
+        np.savez(filename + "_b", **bias_dict)
+
+    def load(self, filename):
+        loaded_ws = np.load(filename + "_w.npz")
+        loaded_bs = np.load(filename + "_b.npz")
+
+        layer = 0
+        for key in loaded_ws.keys():
+            self._ws[layer] = loaded_ws[key]
+            layer += 1
+
+        layer = 0
+        for key in loaded_bs.keys():
+            self._bs[layer] = loaded_bs[key]
+            layer += 1
+
 def label_to_mat(label):
     mat = np.zeros((10, 1))
     mat[label] = 1
@@ -158,6 +179,8 @@ def label_to_mat(label):
 
 # More data -> more epochs and lower training rate???
 
+filename = "params/network"
+
 def main():
     # Read the mnist training dataset
     images = []
@@ -165,7 +188,7 @@ def main():
 
     epochs = 1000 # Careful of overfitting
 
-    data_count = 500 # How many images to load
+    data_count = 215 # How many images to load
     train_count = data_count - 15 # How many images to train the network on
 
     count = 0
@@ -185,11 +208,13 @@ def main():
     out = label_to_mat(labels[0])
     nn = Network([128, 10], images[0].T, out)
 
+    # For every epoch - train the network on the selected data
     for j in range(epochs):
         for i in range(train_count):
             nn.train(images[i].T, label_to_mat(labels[i]))
             nn.forward()
 
+        # Print a loading bar to show the training progress
         if (j / epochs * 100 + 1) % 1 == 0:
             progress = math.ceil(j / epochs * 100 + 1)
             sys.stdout.write('\r')
@@ -199,17 +224,51 @@ def main():
 
     print("\n ----------TEST DATA----------")
 
-    # Test the network on images it is not trained on
+    # Test the network on the loaded images it was not trained on
     for i in range(train_count, data_count):
         nn._as[0] = images[i].T
         nn.forward()
         print(f"\nDesired: {labels[i]}, index: {i}")
         print(nn.out())
 
+    nn.save(filename)
+    print("Saving parameters")
+
+def load():
+    # Read the mnist training dataset
+    images = []
+    labels = []
+
+    data_count = 0
+    with open("mnist_train.csv") as f:
+        for line in f:
+            parts = line.rstrip().split(",")
+            label = int(parts[0])
+            pixels = np.array([int(x) for x in parts[1:]])[np.newaxis]
+            
+            labels.append(label)
+            images.append(pixels)
+
+            data_count += 1
+
+    # We need the shape of the data to initialize the network
+    out = label_to_mat(labels[0])
+    nn = Network([128, 10], images[0].T, out)
+
+    nn.load(filename)
+    print("Loaded parameters")
+
+    # Test the network on the loaded images it was not trained on
+    for i in range(10):
+        index = random.randint(0, data_count)
+        nn._as[0] = images[index].T
+        nn.forward()
+        print(f"\nDesired: {labels[index]}, index: {index}")
+        print(nn.out())
 
 if __name__ == "__main__":
     start_time = time.time()
-    main()
+    pain()
     timed = time.time() - start_time
     print(f"Minutes: {timed // 60}, seconds: {timed % 60}")
 
