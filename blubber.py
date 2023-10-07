@@ -5,6 +5,10 @@ import math
 import time
 import random
 
+# Print numpy arrays in a readable format
+np.set_printoptions(edgeitems=30, linewidth=100, 
+    formatter=dict(float=lambda x: "%.3g" % x))
+
 class Network:
     class Gradient:
         def __init__(self):
@@ -23,7 +27,7 @@ class Network:
         self._gradient = self.Gradient()
 
         self._h = 1e-3
-        self._rate = 1e-3
+        self._rate = 1e-4
 
         rows = train_in.shape[0]
         cols = train_in.shape[1]
@@ -172,6 +176,34 @@ def label_to_mat(label):
     mat[label] = 1
     return mat
 
+def compress(image):
+    src_dim = 520
+    dst_dim = 28
+    scale = src_dim / dst_dim
+
+    compressed = [0 for _ in range(dst_dim**2)]
+
+    for y in range(dst_dim):
+        for x in range(dst_dim):
+            og_x = int(x * scale)
+            og_y = int(y * scale)
+
+            avg_colour = 0
+            count = 0
+            for dy in range(int(scale)):
+                for dx in range(int(scale)):
+                    index = (og_y * dy) * src_dim + (og_x + dx)
+                    print(index)
+                    if index < src_dim**2:
+                        pixel_val = image[0][index]
+                        avg_colour += pixel_val
+                        count += 1
+
+            if (y * dst_dim + x) < dst_dim**2:
+                compressed[y * dst_dim + x] = avg_colour / count
+
+    return np.array(compressed)[np.newaxis]
+
 # Lower training rate
 # Smaller dataset
 # Less training iterations
@@ -186,7 +218,7 @@ def main():
     images = []
     labels = []
 
-    epochs = 1000 # Careful of overfitting
+    epochs = 20 # Careful of overfitting
 
     data_count = 1015 # How many images to load
     train_count = data_count - 15 # How many images to train the network on
@@ -239,17 +271,32 @@ def load():
     images = []
     labels = []
 
-    data_count = 0
-    with open("mnist_train.csv") as f:
+    # data_count = 0
+    # with open("mnist_train.csv") as f:
+    #     for line in f:
+    #         parts = line.rstrip().split(",")
+    #         label = int(parts[0])
+    #         pixels = np.array([int(x) for x in parts[1:]])[np.newaxis]
+    #         
+    #         labels.append(label)
+    #         images.append(pixels)
+
+    #         data_count += 1
+
+    data_count = 1
+    with open("canvas_dataset.csv") as f:
         for line in f:
             parts = line.rstrip().split(",")
-            label = int(parts[0])
-            pixels = np.array([int(x) for x in parts[1:]])[np.newaxis]
-            
+            label = 2
+            pixels = np.array([int(x) for x in parts])[np.newaxis]
+
             labels.append(label)
             images.append(pixels)
 
-            data_count += 1
+    # Compress this mafakka
+    print(images[0])
+    # images[0] = compress(images[0])
+    print(np.rint(images[0].reshape(28, 28)))
 
     # We need the shape of the data to initialize the network
     out = label_to_mat(labels[0])
@@ -266,18 +313,16 @@ def load():
         guess = np.argmax(nn.out())
         if guess != labels[i]: errors += 1
 
+        print(f"\nDesired: {labels[i]}, index: {i}, guess: {guess}")
+        print(nn.out())
+
     accuracy = 100 - (errors / data_count * 100)
     print(f"Accuracy: {accuracy}")
 
 if __name__ == "__main__":
     start_time = time.time()
-    main()
-    # load()
+    # main()
+    load()
     timed = time.time() - start_time
     print(f"Minutes: {timed // 60}, seconds: {timed % 60}")
 
-
-
-# Our data was transposed, so we pick out input and output by rows instead of columns
-# inp = train[0:2]
-# out = train[2][np.newaxis] # Stay as matrix
