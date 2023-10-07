@@ -188,7 +188,7 @@ def main():
 
     epochs = 1000 # Careful of overfitting
 
-    data_count = 215 # How many images to load
+    data_count = 1015 # How many images to load
     train_count = data_count - 15 # How many images to train the network on
 
     count = 0
@@ -258,17 +258,21 @@ def load():
     nn.load(filename)
     print("Loaded parameters")
 
-    # Test the network on the loaded images it was not trained on
-    for i in range(10):
-        index = random.randint(0, data_count)
-        nn._as[0] = images[index].T
+    errors = 0
+    # Test the network on the whole dataset
+    for i in range(data_count):
+        nn._as[0] = images[i].T
         nn.forward()
-        print(f"\nDesired: {labels[index]}, index: {index}")
-        print(nn.out())
+        guess = np.argmax(nn.out())
+        if guess != labels[i]: errors += 1
+
+    accuracy = 100 - (errors / data_count * 100)
+    print(f"Accuracy: {accuracy}")
 
 if __name__ == "__main__":
     start_time = time.time()
-    pain()
+    main()
+    # load()
     timed = time.time() - start_time
     print(f"Minutes: {timed // 60}, seconds: {timed % 60}")
 
